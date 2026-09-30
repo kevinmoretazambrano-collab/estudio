@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Examen de Práctica - HTML5 (Estilo Moodle)</title>
+    <style>
+        :root {
+            --moodle-blue: #0f6cbf;
+            --moodle-bg: #f4f5f7;
+            --card-bg: #e8f4f8;
+            --correct-bg: #d4edda;
+            --correct-border: #28a745;
+            --incorrect-bg: #f8d7da;
+            --incorrect-border: #dc3545;
+            --text-dark: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--moodle-bg);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* Top Bar / Timer */
+        .header-bar {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .timer-box {
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            background-color: #fff;
+            padding: 8px 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-radius: 4px;
+        }
+
+        .hide-btn {
+            background-color: #ced4da;
+            border: none;
+            padding: 10px 15px;
+            margin-left: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        /* Moodle Summary Card (Review Header) */
+        .review-summary {
+            display: none;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .review-summary table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .review-summary th, .review-summary td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .review-summary th {
+            width: 25%;
+            background-color: #f8f9fa;
+        }
+
+        .grade-highlight {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--moodle-blue);
+        }
+
+        /* Question Box */
+        .question-card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--moodle-blue);
+        }
+
+        .question-title {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .match-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .match-label {
+            width: 130px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.05rem;
+            color: #1a252f;
+        }
+
+        .select-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 0.95rem;
+            border: 1.5px solid #a0a0a0;
+            border-radius: 6px;
+            background-color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        select:focus {
+            border-color: var(--moodle-blue);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(15, 108, 191, 0.2);
+        }
+
+        /* Styles for review state */
+        select.is-correct {
+            border-color: var(--correct-border) !important;
+            background-color: var(--correct-bg) !important;
+            color: #155724;
+            font-weight: 600;
+        }
+
+        select.is-incorrect {
+            border-color: var(--incorrect-border) !important;
+            background-color: var(--incorrect-bg) !important;
+            color: #721c24;
+        }
+
+        .feedback-text {
+            display: none;
+            width: 100%;
+            font-size: 0.85rem;
+            margin-top: 4px;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .feedback-text.show-error {
+            display: block;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Submit Button Section */
+        .actions-bar {
+            text-align: center;
+            margin: 40px 0;
+        }
+
+        .btn-moodle {
+            background-color: var(--moodle-blue);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+            transition: background 0.2s ease;
+        }
+
+        .btn-moodle:hover {
+            background-color: #0b5190;
+        }
+
+        .btn-retry {
+            background-color: #6c757d;
+            display: none;
+        }
+
+        .btn-retry:hover {
+            background-color: #5a6268;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header / Timer Bar -->
+    <div class="header-bar">
+        <div class="timer-box" id="timerBox">Tiempo restante <span id="timer">59:59</span></div>
+        <button class="hide-btn" onclick="toggleTimer()">Ocultar</button>
+    </div>
+
+    <!-- Moodle Review Result Header (Appears after submission) -->
+    <div class="review-summary" id="reviewSummary">
+        <h2>Resumen del Intento - Revisión</h2>
+        <table>
+            <tr>
+                <th>Estado</th>
+                <td id="resEstado">Finalizado</td>
+            </tr>
+            <tr>
+                <th>Tiempo empleado</th>
+                <td id="resTiempo">0 min 0 seg</td>
+            </tr>
+            <tr>
+                <th>Puntos</th>
+                <td id="resPuntos">0,00 / 40,00</td>
+            </tr>
+            <tr>
+                <th>Calificación</th>
+                <td id="resCalificacion" class="grade-highlight">0,00 de 10,00 (0%)</td>
+            </tr>
+            <tr>
+                <th>Comentario</th>
+                <td id="resComentario">-</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- EXAM FORM -->
+    <form id="quizForm">
+
+        <!-- PREGUNTA 1 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 1: Relaciona cada atributo con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">placeholder</span>
+                <div class="select-container">
+                    <select name="p1_1" data-correct="Muestra un texto de ayuda dentro del campo de entrada">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">max</span>
+                <div class="select-container">
+                    <select name="p1_2" data-correct="Define el valor máximo permitido en un campo numérico">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">required</span>
+                <div class="select-container">
+                    <select name="p1_3" data-correct="Indica que el campo es obligatorio antes de enviar el formulario">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">autocomplete</span>
+                <div class="select-container">
+                    <select name="p1_4" data-correct="Permite activar o desactivar el autocompletado del navegador">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">autofocus</span>
+                <div class="select-container">
+                    <select name="p1_5" data-correct="Coloca automáticamente el cursor en el campo al cargar la página">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">min</span>
+                <div class="select-container">
+                    <select name="p1_6" data-correct="Define el valor mínimo permitido en un campo numérico">
+                        <option value="">Elegir...</option>
+                        <option value="Permite activar o desactivar el autocompletado del navegador">Permite activar o desactivar el autocompletado del navegador</option>
+                        <option value="Coloca automáticamente el cursor en el campo al cargar la página">Coloca automáticamente el cursor en el campo al cargar la página</option>
+                        <option value="Define el valor máximo permitido en un campo numérico">Define el valor máximo permitido en un campo numérico</option>
+                        <option value="Indica que el campo es obligatorio antes de enviar el formulario">Indica que el campo es obligatorio antes de enviar el formulario</option>
+                        <option value="Muestra un texto de ayuda dentro del campo de entrada">Muestra un texto de ayuda dentro del campo de entrada</option>
+                        <option value="Define el valor mínimo permitido en un campo numérico">Define el valor mínimo permitido en un campo numérico</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 2 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 2: Relaciona cada etiqueta con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">search</span>
+                <div class="select-container">
+                    <select name="p2_1" data-correct="Contenedor para secciones relacionadas con búsquedas o filtros">
+                        <option value="">Elegir...</option>
+                        <option value="Define contenido secundario o complementario al principal">Define contenido secundario o complementario al principal</option>
+                        <option value="Define contenido autónomo e independiente como artículos o publicaciones">Define contenido autónomo e independiente como artículos o publicaciones</option>
+                        <option value="Contenedor en línea para aplicar estilos o agrupar elementos">Contenedor en línea para aplicar estilos o agrupar elementos</option>
+                        <option value="Contenedor para secciones relacionadas con búsquedas o filtros">Contenedor para secciones relacionadas con búsquedas o filtros</option>
+                        <option value="Contenedor genérico para agrupar elementos en bloques">Contenedor genérico para agrupar elementos en bloques</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">article</span>
+                <div class="select-container">
+                    <select name="p2_2" data-correct="Define contenido autónomo e independiente como artículos o publicaciones">
+                        <option value="">Elegir...</option>
+                        <option value="Define contenido secundario o complementario al principal">Define contenido secundario o complementario al principal</option>
+                        <option value="Define contenido autónomo e independiente como artículos o publicaciones">Define contenido autónomo e independiente como artículos o publicaciones</option>
+                        <option value="Contenedor en línea para aplicar estilos o agrupar elementos">Contenedor en línea para aplicar estilos o agrupar elementos</option>
+                        <option value="Contenedor para secciones relacionadas con búsquedas o filtros">Contenedor para secciones relacionadas con búsquedas o filtros</option>
+                        <option value="Contenedor genérico para agrupar elementos en bloques">Contenedor genérico para agrupar elementos en bloques</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">aside</span>
+                <div class="select-container">
+                    <select name="p2_3" data-correct="Define contenido secundario o complementario al principal">
+                        <option value="">Elegir...</option>
+                        <option value="Define contenido secundario o complementario al principal">Define contenido secundario o complementario al principal</option>
+                        <option value="Define contenido autónomo e independiente como artículos o publicaciones">Define contenido autónomo e independiente como artículos o publicaciones</option>
+                        <option value="Contenedor en línea para aplicar estilos o agrupar elementos">Contenedor en línea para aplicar estilos o agrupar elementos</option>
+                        <option value="Contenedor para secciones relacionadas con búsquedas o filtros">Contenedor para secciones relacionadas con búsquedas o filtros</option>
+                        <option value="Contenedor genérico para agrupar elementos en bloques">Contenedor genérico para agrupar elementos en bloques</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">div</span>
+                <div class="select-container">
+                    <select name="p2_4" data-correct="Contenedor genérico para agrupar elementos en bloques">
+                        <option value="">Elegir...</option>
+                        <option value="Define contenido secundario o complementario al principal">Define contenido secundario o complementario al principal</option>
+                        <option value="Define contenido autónomo e independiente como artículos o publicaciones">Define contenido autónomo e independiente como artículos o publicaciones</option>
+                        <option value="Contenedor en línea para aplicar estilos o agrupar elementos">Contenedor en línea para aplicar estilos o agrupar elementos</option>
+                        <option value="Contenedor para secciones relacionadas con búsquedas o filtros">Contenedor para secciones relacionadas con búsquedas o filtros</option>
+                        <option value="Contenedor genérico para agrupar elementos en bloques">Contenedor genérico para agrupar elementos en bloques</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">span</span>
+                <div class="select-container">
+                    <select name="p2_5" data-correct="Contenedor en línea para aplicar estilos o agrupar elementos">
+                        <option value="">Elegir...</option>
+                        <option value="Define contenido secundario o complementario al principal">Define contenido secundario o complementario al principal</option>
+                        <option value="Define contenido autónomo e independiente como artículos o publicaciones">Define contenido autónomo e independiente como artículos o publicaciones</option>
+                        <option value="Contenedor en línea para aplicar estilos o agrupar elementos">Contenedor en línea para aplicar estilos o agrupar elementos</option>
+                        <option value="Contenedor para secciones relacionadas con búsquedas o filtros">Contenedor para secciones relacionadas con búsquedas o filtros</option>
+                        <option value="Contenedor genérico para agrupar elementos en bloques">Contenedor genérico para agrupar elementos en bloques</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 3 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 3: Relaciona cada atributo con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">readonly</span>
+                <div class="select-container">
+                    <select name="p3_1" data-correct="Indica que el campo es de solo lectura y no puede modificarse">
+                        <option value="">Elegir...</option>
+                        <option value="Define el número máximo de caracteres permitidos">Define el número máximo de caracteres permitidos</option>
+                        <option value="Establece una expresión regular que el valor debe cumplir para ser válido">Establece una expresión regular que el valor debe cumplir para ser válido</option>
+                        <option value="Indica que el campo es de solo lectura y no puede modificarse">Indica que el campo es de solo lectura y no puede modificarse</option>
+                        <option value="Define el ancho del campo en número de caracteres visibles">Define el ancho del campo en número de caracteres visibles</option>
+                        <option value="Contiene el valor actual del texto ingresado en el campo">Contiene el valor actual del texto ingresado en el campo</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">maxlength</span>
+                <div class="select-container">
+                    <select name="p3_2" data-correct="Define el número máximo de caracteres permitidos">
+                        <option value="">Elegir...</option>
+                        <option value="Define el número máximo de caracteres permitidos">Define el número máximo de caracteres permitidos</option>
+                        <option value="Establece una expresión regular que el valor debe cumplir para ser válido">Establece una expresión regular que el valor debe cumplir para ser válido</option>
+                        <option value="Indica que el campo es de solo lectura y no puede modificarse">Indica que el campo es de solo lectura y no puede modificarse</option>
+                        <option value="Define el ancho del campo en número de caracteres visibles">Define el ancho del campo en número de caracteres visibles</option>
+                        <option value="Contiene el valor actual del texto ingresado en el campo">Contiene el valor actual del texto ingresado en el campo</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">size</span>
+                <div class="select-container">
+                    <select name="p3_3" data-correct="Define el ancho del campo en número de caracteres visibles">
+                        <option value="">Elegir...</option>
+                        <option value="Define el número máximo de caracteres permitidos">Define el número máximo de caracteres permitidos</option>
+                        <option value="Establece una expresión regular que el valor debe cumplir para ser válido">Establece una expresión regular que el valor debe cumplir para ser válido</option>
+                        <option value="Indica que el campo es de solo lectura y no puede modificarse">Indica que el campo es de solo lectura y no puede modificarse</option>
+                        <option value="Define el ancho del campo en número de caracteres visibles">Define el ancho del campo en número de caracteres visibles</option>
+                        <option value="Contiene el valor actual del texto ingresado en el campo">Contiene el valor actual del texto ingresado en el campo</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">pattern</span>
+                <div class="select-container">
+                    <select name="p3_4" data-correct="Establece una expresión regular que el valor debe cumplir para ser válido">
+                        <option value="">Elegir...</option>
+                        <option value="Define el número máximo de caracteres permitidos">Define el número máximo de caracteres permitidos</option>
+                        <option value="Establece una expresión regular que el valor debe cumplir para ser válido">Establece una expresión regular que el valor debe cumplir para ser válido</option>
+                        <option value="Indica que el campo es de solo lectura y no puede modificarse">Indica que el campo es de solo lectura y no puede modificarse</option>
+                        <option value="Define el ancho del campo en número de caracteres visibles">Define el ancho del campo en número de caracteres visibles</option>
+                        <option value="Contiene el valor actual del texto ingresado en el campo">Contiene el valor actual del texto ingresado en el campo</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">value</span>
+                <div class="select-container">
+                    <select name="p3_5" data-correct="Contiene el valor actual del texto ingresado en el campo">
+                        <option value="">Elegir...</option>
+                        <option value="Define el número máximo de caracteres permitidos">Define el número máximo de caracteres permitidos</option>
+                        <option value="Establece una expresión regular que el valor debe cumplir para ser válido">Establece una expresión regular que el valor debe cumplir para ser válido</option>
+                        <option value="Indica que el campo es de solo lectura y no puede modificarse">Indica que el campo es de solo lectura y no puede modificarse</option>
+                        <option value="Define el ancho del campo en número de caracteres visibles">Define el ancho del campo en número de caracteres visibles</option>
+                        <option value="Contiene el valor actual del texto ingresado en el campo">Contiene el valor actual del texto ingresado en el campo</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 4 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 4: Relaciona cada tipo de campo de entrada (input) con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">textarea</span>
+                <div class="select-container">
+                    <select name="p4_1" data-correct="Permite ingresar texto largo en varias líneas">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">radio</span>
+                <div class="select-container">
+                    <select name="p4_2" data-correct="Permite seleccionar una sola opción entre varias alternativas">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">checkbox</span>
+                <div class="select-container">
+                    <select name="p4_3" data-correct="Permite seleccionar una o varias opciones independientes">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">file</span>
+                <div class="select-container">
+                    <select name="p4_4" data-correct="Permite adjuntar archivos desde el dispositivo">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">submit</span>
+                <div class="select-container">
+                    <select name="p4_5" data-correct="Botón que envía los datos del formulario">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">password</span>
+                <div class="select-container">
+                    <select name="p4_6" data-correct="Permite ingresar texto oculto, generalmente usado para contraseñas">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">text</span>
+                <div class="select-container">
+                    <select name="p4_7" data-correct="Permite introducir texto visible en una sola línea">
+                        <option value="">Elegir...</option>
+                        <option value="Permite introducir texto visible en una sola línea">Permite introducir texto visible en una sola línea</option>
+                        <option value="Permite ingresar texto oculto, generalmente usado para contraseñas">Permite ingresar texto oculto, generalmente usado para contraseñas</option>
+                        <option value="Permite ingresar texto largo en varias líneas">Permite ingresar texto largo en varias líneas</option>
+                        <option value="Permite seleccionar una sola opción entre varias alternativas">Permite seleccionar una sola opción entre varias alternativas</option>
+                        <option value="Botón que envía los datos del formulario">Botón que envía los datos del formulario</option>
+                        <option value="Permite adjuntar archivos desde el dispositivo">Permite adjuntar archivos desde el dispositivo</option>
+                        <option value="Permite seleccionar una o varias opciones independientes">Permite seleccionar una o varias opciones independientes</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 5 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 5: Relaciona cada etiqueta o atributo con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">form</span>
+                <div class="select-container">
+                    <select name="p5_1" data-correct="Define el inicio y fin de un formulario">
+                        <option value="">Elegir...</option>
+                        <option value="Indica la URL donde se enviarán los datos del formulario">Indica la URL donde se enviarán los datos del formulario</option>
+                        <option value="Especifica el método de envío de datos (GET o POST)">Especifica el método de envío de datos (GET o POST)</option>
+                        <option value="Proporciona una etiqueta descriptiva para un campo de entrada">Proporciona una etiqueta descriptiva para un campo de entrada</option>
+                        <option value="Crea una lista desplegable de opciones">Crea una lista desplegable de opciones</option>
+                        <option value="Define el inicio y fin de un formulario">Define el inicio y fin de un formulario</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">action</span>
+                <div class="select-container">
+                    <select name="p5_2" data-correct="Indica la URL donde se enviarán los datos del formulario">
+                        <option value="">Elegir...</option>
+                        <option value="Indica la URL donde se enviarán los datos del formulario">Indica la URL donde se enviarán los datos del formulario</option>
+                        <option value="Especifica el método de envío de datos (GET o POST)">Especifica el método de envío de datos (GET o POST)</option>
+                        <option value="Proporciona una etiqueta descriptiva para un campo de entrada">Proporciona una etiqueta descriptiva para un campo de entrada</option>
+                        <option value="Crea una lista desplegable de opciones">Crea una lista desplegable de opciones</option>
+                        <option value="Define el inicio y fin de un formulario">Define el inicio y fin de un formulario</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">label</span>
+                <div class="select-container">
+                    <select name="p5_3" data-correct="Proporciona una etiqueta descriptiva para un campo de entrada">
+                        <option value="">Elegir...</option>
+                        <option value="Indica la URL donde se enviarán los datos del formulario">Indica la URL donde se enviarán los datos del formulario</option>
+                        <option value="Especifica el método de envío de datos (GET o POST)">Especifica el método de envío de datos (GET o POST)</option>
+                        <option value="Proporciona una etiqueta descriptiva para un campo de entrada">Proporciona una etiqueta descriptiva para un campo de entrada</option>
+                        <option value="Crea una lista desplegable de opciones">Crea una lista desplegable de opciones</option>
+                        <option value="Define el inicio y fin de un formulario">Define el inicio y fin de un formulario</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">select</span>
+                <div class="select-container">
+                    <select name="p5_4" data-correct="Crea una lista desplegable de opciones">
+                        <option value="">Elegir...</option>
+                        <option value="Indica la URL donde se enviarán los datos del formulario">Indica la URL donde se enviarán los datos del formulario</option>
+                        <option value="Especifica el método de envío de datos (GET o POST)">Especifica el método de envío de datos (GET o POST)</option>
+                        <option value="Proporciona una etiqueta descriptiva para un campo de entrada">Proporciona una etiqueta descriptiva para un campo de entrada</option>
+                        <option value="Crea una lista desplegable de opciones">Crea una lista desplegable de opciones</option>
+                        <option value="Define el inicio y fin de un formulario">Define el inicio y fin de un formulario</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">method</span>
+                <div class="select-container">
+                    <select name="p5_5" data-correct="Especifica el método de envío de datos (GET o POST)">
+                        <option value="">Elegir...</option>
+                        <option value="Indica la URL donde se enviarán los datos del formulario">Indica la URL donde se enviarán los datos del formulario</option>
+                        <option value="Especifica el método de envío de datos (GET o POST)">Especifica el método de envío de datos (GET o POST)</option>
+                        <option value="Proporciona una etiqueta descriptiva para un campo de entrada">Proporciona una etiqueta descriptiva para un campo de entrada</option>
+                        <option value="Crea una lista desplegable de opciones">Crea una lista desplegable de opciones</option>
+                        <option value="Define el inicio y fin de un formulario">Define el inicio y fin de un formulario</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 6 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 6: Relaciona cada etiqueta con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">main</span>
+                <div class="select-container">
+                    <select name="p6_1" data-correct="Define el contenido principal de la página">
+                        <option value="">Elegir...</option>
+                        <option value="Agrupa contenido relacionado en una sección independiente">Agrupa contenido relacionado en una sección independiente</option>
+                        <option value="Define el contenido principal de la página">Define el contenido principal de la página</option>
+                        <option value="Define el pie de una sección o del documento">Define el pie de una sección o del documento</option>
+                        <option value="Define la cabecera de una sección o del documento">Define la cabecera de una sección o del documento</option>
+                        <option value="Define una sección de navegación con enlaces">Define una sección de navegación con enlaces</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">footer</span>
+                <div class="select-container">
+                    <select name="p6_2" data-correct="Define el pie de una sección o del documento">
+                        <option value="">Elegir...</option>
+                        <option value="Agrupa contenido relacionado en una sección independiente">Agrupa contenido relacionado en una sección independiente</option>
+                        <option value="Define el contenido principal de la página">Define el contenido principal de la página</option>
+                        <option value="Define el pie de una sección o del documento">Define el pie de una sección o del documento</option>
+                        <option value="Define la cabecera de una sección o del documento">Define la cabecera de una sección o del documento</option>
+                        <option value="Define una sección de navegación con enlaces">Define una sección de navegación con enlaces</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">section</span>
+                <div class="select-container">
+                    <select name="p6_3" data-correct="Agrupa contenido relacionado en una sección independiente">
+                        <option value="">Elegir...</option>
+                        <option value="Agrupa contenido relacionado en una sección independiente">Agrupa contenido relacionado en una sección independiente</option>
+                        <option value="Define el contenido principal de la página">Define el contenido principal de la página</option>
+                        <option value="Define el pie de una sección o del documento">Define el pie de una sección o del documento</option>
+                        <option value="Define la cabecera de una sección o del documento">Define la cabecera de una sección o del documento</option>
+                        <option value="Define una sección de navegación con enlaces">Define una sección de navegación con enlaces</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">nav</span>
+                <div class="select-container">
+                    <select name="p6_4" data-correct="Define una sección de navegación con enlaces">
+                        <option value="">Elegir...</option>
+                        <option value="Agrupa contenido relacionado en una sección independiente">Agrupa contenido relacionado en una sección independiente</option>
+                        <option value="Define el contenido principal de la página">Define el contenido principal de la página</option>
+                        <option value="Define el pie de una sección o del documento">Define el pie de una sección o del documento</option>
+                        <option value="Define la cabecera de una sección o del documento">Define la cabecera de una sección o del documento</option>
+                        <option value="Define una sección de navegación con enlaces">Define una sección de navegación con enlaces</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">header</span>
+                <div class="select-container">
+                    <select name="p6_5" data-correct="Define la cabecera de una sección o del documento">
+                        <option value="">Elegir...</option>
+                        <option value="Agrupa contenido relacionado en una sección independiente">Agrupa contenido relacionado en una sección independiente</option>
+                        <option value="Define el contenido principal de la página">Define el contenido principal de la página</option>
+                        <option value="Define el pie de una sección o del documento">Define el pie de una sección o del documento</option>
+                        <option value="Define la cabecera de una sección o del documento">Define la cabecera de una sección o del documento</option>
+                        <option value="Define una sección de navegación con enlaces">Define una sección de navegación con enlaces</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREGUNTA 7 -->
+        <div class="question-card">
+            <h3 class="question-title">Pregunta 7: Relaciona cada tipo de campo de entrada (input) con su función correspondiente.</h3>
+            
+            <div class="match-row">
+                <span class="match-label">date</span>
+                <div class="select-container">
+                    <select name="p7_1" data-correct="Permite seleccionar una fecha mediante un calendario">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">url</span>
+                <div class="select-container">
+                    <select name="p7_2" data-correct="Permite ingresar una dirección web válida">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">number</span>
+                <div class="select-container">
+                    <select name="p7_3" data-correct="Permite ingresar valores numéricos con control de rango">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">search</span>
+                <div class="select-container">
+                    <select name="p7_4" data-correct="Permite ingresar términos de búsqueda">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">range</span>
+                <div class="select-container">
+                    <select name="p7_5" data-correct="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">color</span>
+                <div class="select-container">
+                    <select name="p7_6" data-correct="Permite seleccionar un color desde una paleta">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+
+            <div class="match-row">
+                <span class="match-label">email</span>
+                <div class="select-container">
+                    <select name="p7_7" data-correct="Permite ingresar una dirección de correo electrónico válida">
+                        <option value="">Elegir...</option>
+                        <option value="Permite ingresar una dirección web válida">Permite ingresar una dirección web válida</option>
+                        <option value="Permite ingresar términos de búsqueda">Permite ingresar términos de búsqueda</option>
+                        <option value="Permite seleccionar un valor dentro de un rango mediante una barra deslizante">Permite seleccionar un valor dentro de un rango mediante una barra deslizante</option>
+                        <option value="Permite seleccionar un color desde una paleta">Permite seleccionar un color desde una paleta</option>
+                        <option value="Permite seleccionar una fecha mediante un calendario">Permite seleccionar una fecha mediante un calendario</option>
+                        <option value="Permite ingresar valores numéricos con control de rango">Permite ingresar valores numéricos con control de rango</option>
+                        <option value="Permite ingresar una dirección de correo electrónico válida">Permite ingresar una dirección de correo electrónico válida</option>
+                    </select>
+                    <div class="feedback-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <button type="button" class="btn-moodle" id="finishBtn" onclick="finishExam()">Terminar intento...</button>
+            <button type="button" class="btn-moodle btn-retry" id="retryBtn" onclick="resetExam()">Reintentar el cuestionario</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    let secondsLeft = 3600;
+    let timerInterval = setInterval(updateTimer, 1000);
+    let startTime = new Date();
+
+    function updateTimer() {
+        if (secondsLeft <= 0) {
+            clearInterval(timerInterval);
+            finishExam();
+            return;
+        }
+        secondsLeft--;
+        let mins = Math.floor(secondsLeft / 60);
+        let secs = secondsLeft % 60;
+        document.getElementById("timer").innerText = 
+            (mins < 10 ? "0" + mins : mins) + ":" + (secs < 10 ? "0" + secs : secs);
+    }
+
+    function toggleTimer() {
+        let box = document.getElementById("timerBox");
+        box.style.display = (box.style.display === "none") ? "inline-block" : "none";
+    }
+
+    function finishExam() {
+        clearInterval(timerInterval);
+
+        let endTime = new Date();
+        let timeDiff = Math.floor((endTime - startTime) / 1000);
+        let minsUsed = Math.floor(timeDiff / 60);
+        let secsUsed = timeDiff % 60;
+
+        let selects = document.querySelectorAll("select");
+        let totalItems = selects.length; // 40 items
+        let correctCount = 0;
+
+        selects.forEach(select => {
+            let userAns = select.value;
+            let correctAns = select.getAttribute("data-correct");
+            let feedback = select.nextElementSibling;
+
+            select.disabled = true;
+
+            if (userAns === correctAns) {
+                correctCount++;
+                select.classList.add("is-correct");
+                select.classList.remove("is-incorrect");
+                feedback.classList.remove("show-error");
+            } else {
+                select.classList.add("is-incorrect");
+                select.classList.remove("is-correct");
+                feedback.innerHTML = "✖ <strong>Respuesta correcta:</strong> " + correctAns;
+                feedback.classList.add("show-error");
+            }
+        });
+
+        // Calculate score
+        let score = (correctCount / totalItems) * 10;
+        let percentage = Math.round((correctCount / totalItems) * 100);
+
+        // Render Review Header
+        document.getElementById("reviewSummary").style.display = "block";
+        document.getElementById("resTiempo").innerText = minsUsed + " min " + secsUsed + " seg";
+        document.getElementById("resPuntos").innerText = correctCount + ",00 / " + totalItems + ",00";
+        document.getElementById("resCalific
